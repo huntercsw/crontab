@@ -1,0 +1,5 @@
+Info	2020/04/12 20:56:13.697534 D:/go_project/crontab/crontabLog.go:15: main start
+Error	2020/04/12 20:56:13.772539 D:/go_project/crontab/crontabLog.go:20: main done
+Info	2020/04/18 22:15:30.197959 D:/go_project/crontab/crontabLog.go:14: insert key[/yinuo] succeed: cluster_id:14841639068965178418 member_id:10276657743932975437 revision:24 raft_term:5 
+Info	2020/04/18 22:22:39.000485 D:/go_project/crontab/crontabLog.go:14: insert key[/yinuo] succeed: cluster_id:14841639068965178418 member_id:10276657743932975437 revision:27 raft_term:5 
+Info	2020/04/18 22:34:52.497439 D:/go_project/crontab/crontabLog.go:14: insert with lease key[/yinuo] succeed: cluster_id:14841639068965178418 member_id:10276657743932975437 revision:29 raft_term:5 
