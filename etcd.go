@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/coreos/etcd/mvcc/mvccpb"
-	"go.etcd.io/etcd/clientv3"
+	//"go.etcd.io/etcd/mvcc/mvccpb"
+	//"go.etcd.io/etcd/clientv3"
+	"github.com/coreos/etcd/clientv3"
 	"sync"
 	"time"
 )
@@ -175,3 +177,101 @@ func (etcd *EtcdHandler) Watch(ctx context.Context, k string, opts ...interface{
 	}
 	return
 }
+
+// Op operation
+func (etcd *EtcdHandler) OpGetOperation(ctx context.Context, k string, opts ...clientv3.OpOption) (kvs []*mvccpb.KeyValue, err error) {
+	var (
+		opRsp clientv3.OpResponse
+		opGetOp clientv3.Op
+	)
+	opGetOp = clientv3.OpGet(k, opts...)
+	if opRsp, err = etcd.cli.Do(ctx, opGetOp); err != nil {
+		fmt.Println("opGet error:", err)
+	} else {
+		kvs = opRsp.Get().Kvs
+	}
+	return
+}
+
+func (etcd *EtcdHandler) OpPutOperation(ctx context.Context, k string, v string, opts ...clientv3.OpOption) (rsp *clientv3.PutResponse, err error) {
+	var opRsp clientv3.OpResponse
+	opPutOp := clientv3.OpPut(k, v, opts...)
+	if opRsp, err = etcd.cli.Do(ctx, opPutOp); err != nil {
+		return
+	} else {
+		rsp = opRsp.Put()
+		return
+	}
+}
+
+func (etcd *EtcdHandler) OpWithDistributeOptimisticLock(ctx context.Context, k string, v string) (obtained bool, err error) {
+	var(
+		leaseRsp *clientv3.LeaseGrantResponse
+		leaseId clientv3.LeaseID
+		leaseRevokeRsp *clientv3.LeaseRevokeResponse
+	)
+	// 1, 上锁 (创建租约, 自动续租, 拿着租约去抢占一个key)
+	if leaseRsp, err = etcd.cli.Grant(ctx, 1); err != nil {
+		fmt.Println("grant lease error")
+		return
+	}
+	leaseId = leaseRsp.ID
+	leaseCtx, leaseCancel := context.WithCancel(ctx)
+	// release lease
+	defer func() {
+		fmt.Println("defer lease cancel")
+		leaseCancel()
+	}()
+	//release lock immediately
+	defer func() {
+		fmt.Println("defer lease revoke")
+		if leaseRevokeRsp, err = etcd.cli.Revoke(context.TODO(), leaseId); err != nil {
+			fmt.Println("lease revoke error:", err)
+		} else {
+			fmt.Println("lease revoke,", time.Now().Format("2006-01-02 15:04:05"), *leaseRevokeRsp)
+		}
+	}()
+	// make lease keep alive
+	var leaseRspChan <-chan *clientv3.LeaseKeepAliveResponse
+	if leaseRspChan, err = etcd.lease.KeepAlive(leaseCtx, leaseId); err != nil {
+		fmt.Println("keep alive error")
+		return
+	}
+	go func() {
+		for {
+			select {
+			case rsp := <-leaseRspChan:
+				fmt.Println(time.Now().String(), rsp)
+			}
+			time.Sleep(time.Millisecond*500)
+		}
+	}()
+
+	//  if 不存在key， then 设置它, else 抢锁失败
+	// 1/创建事务
+	transaction := etcd.cli.Txn(ctx)
+	// 2/如果key不存在
+	transaction.If(clientv3.Compare(clientv3.CreateRevision(k), "=", 0)).
+		Then(clientv3.OpPut(k, v, clientv3.WithLease(leaseId))).
+		Else(clientv3.OpGet(k))
+	// 3/提交事务
+	var txnRsp *clientv3.TxnResponse
+	if txnRsp, err = transaction.Commit(); err != nil {
+		fmt.Println("commit error")
+		return
+	}
+	// 判断是否抢到了锁
+	if !txnRsp.Succeeded {
+		fmt.Println("optimistic lock is locked", txnRsp.Responses)
+		return
+	}
+	// 2, 处理业务
+	fmt.Println("..............................", time.Now().String())
+	time.Sleep(time.Second*10)
+	obtained = true
+
+	return
+	// 3, 释放锁(取消自动续租, 释放租约)
+	// defer 会把租约释放掉, 关联的KV就被删除了
+}
+

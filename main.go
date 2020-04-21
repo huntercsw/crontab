@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
-	"time"
 )
 
 var (
@@ -13,6 +11,7 @@ var (
 	LogFile *os.File
 	Logger  MyLog
 	Etcd    = new(EtcdHandler)
+	Mongo   = new(MongoDB)
 )
 
 func init() {
@@ -29,19 +28,39 @@ func init() {
 		Logger.Error(fmt.Sprintf("etcd handler init error: %v", err))
 		os.Exit(1)
 	}
+	if err = Mongo.Init(); err != nil {
+		Logger.Error(fmt.Sprintf("mongoDB init error: %v", err))
+		os.Exit(1)
+	}
 }
 
 func main() {
 	defer func() {
 		LogFile.Close()
 		Etcd.cli.Close()
+		Mongo.cli.Disconnect(context.Background())
 	}()
 	ctx, cancel := context.WithCancel(context.Background())
-	go Etcd.Watch(ctx, "name")
-	for i := 0; i < 10; i ++ {
-		Etcd.kv.Put(ctx, "name", fmt.Sprintf("yinuo-%s", strconv.Itoa(i)))
-		time.Sleep(time.Second)
+	//if objIDs, err := Mongo.InsertManyRecord(
+	//	ctx,
+	//	"test",
+	//	"test_collection",
+	//	"yinuo",
+	//	"/usr/local/bin/yinuo",
+	//	"",
+	//	"hello"); err != nil{
+	//	fmt.Println(err)
+	//} else {
+	//	for _, objID := range objIDs {
+	//		fmt.Println(objID.(primitive.ObjectID))
+	//	}
+	//}
+	if rsp, err := Mongo.Fetch(ctx); err != nil {
+		fmt.Println(err)
+	} else {
+		for _, data := range rsp {
+			fmt.Println(data)
+		}
 	}
 	cancel()
-	time.Sleep(time.Second*2)
 }
