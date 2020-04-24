@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -21,14 +22,14 @@ type TimePoint struct {
 
 type MongoRecodeTest struct {
 	TimePoint
-	Name    string `bson: name`
-	Command string `bson: command`
-	StdErr  string `bson: stdErr`
-	StdOut  string `bson: stdOut`
+	Name      string `bson: name`
+	Command   string `bson: command`
+	StdErr    string `bson: stdErr`
+	StdOut    string `bson: stdOut`
 }
 
 type FetchBy struct {
-	Name   string `bson: name`
+	Name string `bson: name`
 }
 
 func (m *MongoDB) Init() (err error) {
@@ -88,13 +89,13 @@ func (m *MongoDB) InsertManyRecord(ctx context.Context, dbName, collectionName, 
 func (m *MongoDB) Fetch(ctx context.Context) (res []MongoRecodeTest, err error) {
 	var (
 		cursor *mongo.Cursor
-		sk int64
-		li int64
+		sk     int64
+		li     int64
 	)
 	collection := m.cli.Database("test").Collection("test_collection")
-	findBy := FetchBy{Name:"yinuo-02"}
+	findBy := FetchBy{Name: "yinuo-02"}
 	sk, li = 0, 3
-	findOpts := &options.FindOptions{Skip:&sk, Limit:&li}
+	findOpts := &options.FindOptions{Skip: &sk, Limit: &li}
 	if cursor, err = collection.Find(ctx, findBy, findOpts); err != nil {
 		fmt.Println("mongo fetch error:", err)
 	} else {
@@ -111,4 +112,49 @@ func (m *MongoDB) Fetch(ctx context.Context) (res []MongoRecodeTest, err error) 
 	return
 }
 
+type ValueOfCondition struct {
+	BeforeGivenTime int64 `bson: "$lt"`
+}
 
+type DeleteByStartTimeCondition struct {
+	FieldName ValueOfCondition `bson: "timepoint.starttime"`
+}
+
+type Test struct {
+	cond int64 `bson: "timepoint.starttime"`
+}
+
+type DeleteByNameCondition struct {
+	Name string `bson: name`
+}
+
+func (m *MongoDB) DeletePolymerCondition(ctx context.Context) {
+	var (
+		delRsp *mongo.DeleteResult
+		err    error
+	)
+	collection := m.cli.Database("test").Collection("test_collection")
+	deleteCondition := &DeleteByStartTimeCondition{FieldName:ValueOfCondition{BeforeGivenTime:time.Now().Unix()}}
+	//filterByName := DeleteByNameCondition{Name:"yinuo-02"}
+	if delRsp, err = collection.DeleteMany(ctx, deleteCondition); err != nil{
+		fmt.Println("delete error:", err)
+	} else {
+		fmt.Println(delRsp.DeletedCount)
+	}
+}
+
+func (m *MongoDB) FindPolymerCondition(ctx context.Context) {
+	collection := m.cli.Database("test").Collection("test_collection")
+	//condition := DeleteByStartTimeCondition{FieldName:ValueOfCondition{BeforeGivenTime:time.Now().Unix()}}
+	//condition := Test{cond:1587446629}
+	//源码中有bson.M/A/E/D的用法
+	if cursor, err := collection.Find(ctx, bson.M{"timepoint.starttime": bson.M{"$lt":1587448629}}); err != nil {
+		fmt.Println("find error:", err)
+	} else {
+		for cursor.Next(context.TODO()) {
+			r := new(MongoRecodeTest)
+			cursor.Decode(r)
+			fmt.Println(*r)
+		}
+	}
+}

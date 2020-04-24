@@ -1,0 +1,40 @@
+Info	2020/04/22 17:24:48.434518 D:/go_project/crontab/master/masterLog.go:15: master log init succeed
+Info	2020/04/23 20:28:29.792195 D:/go_project/crontab/master/masterLog.go:15: add job[yinuo] to etcd, version: 43
+Info	2020/04/23 20:35:14.123891 D:/go_project/crontab/master/masterLog.go:15: add job[yinuo] to etcd, version: 44
+Error	2020/04/23 20:40:39.274260 D:/go_project/crontab/master/masterLog.go:20: add job to etcd error: job[yinuo] has exist
+Error	2020/04/23 20:41:31.665564 D:/go_project/crontab/master/masterLog.go:20: add job to etcd error: job[yinuo] has exist
+Info	2020/04/23 20:42:02.545836 D:/go_project/crontab/master/masterLog.go:15: add job[yinuo] to etcd, version: 47
+Info	2020/04/23 20:45:28.825894 D:/go_project/crontab/master/masterLog.go:15: add job[yinuo] to etcd, version: 48
+Error	2020/04/23 20:45:38.577648 D:/go_project/crontab/master/masterLog.go:20: add job to etcd error: job[yinuo] has exist
+Error	2020/04/24 09:11:12.059212 D:/go_project/crontab/master/masterLog.go:20: add job to etcd error: job[yinuo] has exist
+Info	2020/04/24 09:27:28.385087 D:/go_project/crontab/master/jobHandler.go:45: add job[/cron/jobs/yinuo01] to etcd, version: 51
+ERROR	2020/04/24 13:08:21.102102 D:/go_project/crontab/master/jobHandler.go:108: {"Name":"yinuo","Command":"bash /usr/local/test/yinuo","CronExpress":"********"} json unmarshal to Job object error: json: Unmarshal(non-pointer main.Job)
+ERROR	2020/04/24 13:55:47.884169 D:/go_project/crontab/master/jobHandler.go:88: delete job /cron/jobs/yinuo01 which value is {"Name":"yinuo01","Command":"bash /usr/local/test/yinuo01","CronExpress":"********"}
+INFO	2020/04/24 14:07:35.216803 D:/go_project/crontab/master/master.go:82: test info
+ERROR	2020/04/24 14:07:35.216803 D:/go_project/crontab/master/master.go:83: test error
+INFO	2020/04/24 14:07:35.216803 D:/go_project/crontab/master/master.go:84: test info 2
+INFO	2020/04/24 14:09:05.273485 D:/go_project/crontab/master/master.go:82: test info
+ERROR	2020/04/24 14:09:05.273485 D:/go_project/crontab/master/master.go:83: test error
+INFO	2020/04/24 14:09:05.273485 D:/go_project/crontab/master/master.go:84: test info 2
+ERROR	2020/04/24 14:09:05.273485 D:/go_project/crontab/master/master.go:85: test error 2
+INFO	2020/04/24 14:09:05.273485 D:/go_project/crontab/master/master.go:86: test info 3
+ERROR	2020/04/24 14:09:05.273485 D:/go_project/crontab/master/master.go:87: test error 3
+INFO	2020/04/24 14:31:59.057346 D:/go_project/crontab/master/jobHandler.go:69: update job[/cron/jobs/yinuo] from {"Name":"yinuo","Command":"bash /usr/local/test/yinuo","CronExpress":"********"} to {"name":"yinuo","command":"python manage.py","cronExpress":"1,*,*,*,*,*"}
+INFO	2020/04/24 14:34:07.766117 D:/go_project/crontab/master/jobHandler.go:45: add job[/cron/jobs/test01] to etcd, version: 54
+INFO	2020/04/24 14:34:17.660131 D:/go_project/crontab/master/jobHandler.go:45: add job[/cron/jobs/test02] to etcd, version: 55
+INFO	2020/04/24 14:34:23.645100 D:/go_project/crontab/master/jobHandler.go:45: add job[/cron/jobs/test03] to etcd, version: 56
+INFO	2020/04/24 14:34:30.454262 D:/go_project/crontab/master/jobHandler.go:45: add job[/cron/jobs/test04] to etcd, version: 57
+INFO	2020/04/24 14:34:37.961106 D:/go_project/crontab/master/jobHandler.go:45: add job[/cron/jobs/test05] to etcd, version: 58
+INFO	2020/04/24 19:13:10.690372 D:/go_project/crontab/master/jobHandler.go:69: update job[/cron/jobs/test01] from {"name":"test01","command":"/bin/test01","cronExpress":"******"} to {"name":"test01","command":"/bin/test01","cronExpress":"******","status":false,"hostName":""}
+INFO	2020/04/24 19:20:00.223303 D:/go_project/crontab/master/jobHandler.go:88: delete job /cron/jobs/test04 which value is {"name":"test04","command":"/bin/test04","cronExpress":"******"}
+INFO	2020/04/24 19:20:20.329223 D:/go_project/crontab/master/jobHandler.go:69: update job[/cron/jobs/test02] from {"name":"test02","command":"/bin/test02","cronExpress":"******"} to {"name":"test02","command":"/bin/test02","cronExpress":"******","status":false,"hostName":""}
+INFO	2020/04/24 19:25:20.719381 D:/go_project/crontab/master/jobHandler.go:69: update job[/cron/jobs/test05] from {"name":"test05","command":"/bin/test05","cronExpress":"******"} to {"name":"test05","command":"/bin/test05","cronExpress":"******","status":false,"hostName":""}
+INFO	2020/04/24 19:26:39.138826 D:/go_project/crontab/master/jobHandler.go:69: update job[/cron/jobs/test03] from {"name":"test03","command":"/bin/test03","cronExpress":"******"} to {"name":"test03","command":"/bin/test03","cronExpress":"******","status":false,"hostName":""}
+INFO	2020/04/24 19:27:31.650062 D:/go_project/crontab/master/jobHandler.go:69: update job[/cron/jobs/test02] from {"name":"test02","command":"/bin/test02","cronExpress":"******","status":false,"hostName":""} to {"name":"test02","command":"/bin/test02","cronExpress":"******","status":false,"hostName":""}
+INFO	2020/04/24 19:29:01.287751 D:/go_project/crontab/master/jobHandler.go:69: update job[/cron/jobs/test01] from {"name":"test01","command":"/bin/test01","cronExpress":"******","status":false,"hostName":""} to {"name":"test01","command":"/bin/test01","cronExpress":"******","status":false,"hostName":""}
+INFO	2020/04/24 19:29:15.808726 D:/go_project/crontab/master/jobHandler.go:69: update job[/cron/jobs/test01] from {"name":"test01","command":"/bin/test01","cronExpress":"******","status":false,"hostName":""} to {"name":"test01","command":"/bin/test01","cronExpress":"******","status":false,"hostName":""}
+INFO	2020/04/24 19:31:50.155187 D:/go_project/crontab/master/jobHandler.go:69: update job[/cron/jobs/yinuo] from {"name":"yinuo","command":"python manage.py","cronExpress":"1,*,*,*,*,*"} to {"name":"yinuo","command":"python manage.py","cronExpress":"1,*,*,*,*,*","status":false,"hostName":""}
+INFO	2020/04/24 19:36:19.631063 D:/go_project/crontab/master/jobHandler.go:69: update job[/cron/jobs/test01] from {"name":"test01","command":"/bin/test01","cronExpress":"******","status":false,"hostName":""} to {"name":"test01","command":"/usr/bin/test01","cronExpress":"******","status":false,"hostName":""}
+INFO	2020/04/24 19:36:35.019135 D:/go_project/crontab/master/jobHandler.go:69: update job[/cron/jobs/test02] from {"name":"test02","command":"/bin/test02","cronExpress":"******","status":false,"hostName":""} to {"name":"test02","command":"/user/bin/test02","cronExpress":"******","status":false,"hostName":""}
+INFO	2020/04/24 19:36:58.170549 D:/go_project/crontab/master/jobHandler.go:69: update job[/cron/jobs/test05] from {"name":"test05","command":"/bin/test05","cronExpress":"******","status":false,"hostName":""} to {"name":"test05","command":"python manage.py","cronExpress":"******","status":false,"hostName":""}
+INFO	2020/04/24 19:37:17.208099 D:/go_project/crontab/master/jobHandler.go:69: update job[/cron/jobs/yinuo] from {"name":"yinuo","command":"python manage.py","cronExpress":"1,*,*,*,*,*","status":false,"hostName":""} to {"name":"yinuo","command":"/yinuo/test","cronExpress":"1,*,*,*,*,*","status":false,"hostName":""}

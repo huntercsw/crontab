@@ -55,12 +55,6 @@ func main() {
 	//		fmt.Println(objID.(primitive.ObjectID))
 	//	}
 	//}
-	if rsp, err := Mongo.Fetch(ctx); err != nil {
-		fmt.Println(err)
-	} else {
-		for _, data := range rsp {
-			fmt.Println(data)
-		}
-	}
+	Mongo.DeletePolymerCondition(ctx)
 	cancel()
 }

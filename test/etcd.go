@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"crontab"
 	"fmt"
 	"github.com/coreos/etcd/mvcc/mvccpb"
 	//"go.etcd.io/etcd/mvcc/mvccpb"
@@ -21,7 +22,7 @@ type EtcdHandler struct {
 
 func (etcd *EtcdHandler) Init() (err error) {
 	etcdEndpoints := []string{}
-	for _, endPoint := range Conf.Etcd.EndPoints {
+	for _, endPoint := range main2.Conf.Etcd.EndPoints {
 		etcdEndpoints = append(etcdEndpoints, fmt.Sprintf("%s:%s", endPoint.Host, endPoint.Port))
 	}
 	if etcd.cli, err = clientv3.New(clientv3.Config{
@@ -39,7 +40,7 @@ func (etcd *EtcdHandler) Init() (err error) {
 
 func (etcd *EtcdHandler) Get(ctx context.Context, keyName string, opts ...clientv3.OpOption) (res *clientv3.GetResponse, err error) {
 	if res, err = etcd.kv.Get(ctx, keyName, opts...); err != nil {
-		Logger.Error(fmt.Sprintf("get key[%s] from etcd error: %v", keyName, err))
+		main2.Logger.Error(fmt.Sprintf("get key[%s] from etcd error: %v", keyName, err))
 		return
 	}
 	return
@@ -47,7 +48,7 @@ func (etcd *EtcdHandler) Get(ctx context.Context, keyName string, opts ...client
 
 func (etcd *EtcdHandler) Put(ctx context.Context, k string, v string, opts ...clientv3.OpOption) (rsp *clientv3.PutResponse, err error) {
 	if rsp, err = etcd.kv.Put(ctx, k, v, opts...); err != nil {
-		Logger.Error(fmt.Sprintf("put key[%s] value[%s] to etcd error: %v", k, v, err))
+		main2.Logger.Error(fmt.Sprintf("put key[%s] value[%s] to etcd error: %v", k, v, err))
 		return
 	}
 	return
@@ -65,7 +66,7 @@ func (etcd *EtcdHandler) PutWithLease(ctx context.Context, k string, v string, e
 	if putRsp, err = etcd.kv.Put(ctx, k, v, clientv3.WithLease(leaseId)); err != nil {
 		return
 	} else {
-		Logger.Info(fmt.Sprintf("insert with lease key[%s] succeed: %v", k, putRsp.Header))
+		main2.Logger.Info(fmt.Sprintf("insert with lease key[%s] succeed: %v", k, putRsp.Header))
 		return
 	}
 }
