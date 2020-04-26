@@ -114,6 +114,31 @@ func (job *Job) JobListHandler(ctx context.Context) (jobs []Job, err error) {
 	return
 }
 
-func (job *Job) JobKillHandler(ctx context.Context, k string) (err error) {
+func (job *Job) JobKillHandler(ctx context.Context) (err error) {
+	var (
+		transaction clientv3.Txn
+		txnRsp *clientv3.TxnResponse
+		key string
+	)
+
+	if job.Status != JOB_STATUS_RUNNING {
+		err = errors.New(fmt.Sprintf("job[%s] is not running", job.Name))
+		return
+	}
+
+	key = JOB_PATH + job.HostName + "/" + job.Name
+	transaction = Etcd.cli.Txn(ctx)
+	transaction.If(clientv3.Compare(clientv3.CreateRevision(key), "=", 0)).
+		Then(clientv3.OpPut(key, "kill")).
+		Else(clientv3.OpGet(key))
+	if txnRsp, err = transaction.Commit(); err != nil {
+		MasterLogger.Error.Println(fmt.Sprintf("put kill signal of job [%s] to etcd error: %v", job.Name, err))
+		err = errors.New(fmt.Sprintf("put kill signal of job[%s] to etcd error", job.Name))
+		return
+	}
+	if !txnRsp.Succeeded {
+		err = errors.New(fmt.Sprintf("kill signal of job[%s] has published", job.Name))
+		return
+	}
 	return
 }

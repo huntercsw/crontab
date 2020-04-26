@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/coreos/etcd/mvcc/mvccpb"
 	"net"
 	"net/http"
 	"sync"
@@ -33,6 +35,7 @@ func webServerInitOnce() {
 	mux.HandleFunc("/crontab/jobs/get", jobGet)
 	mux.HandleFunc("/crontab/jobs/put", jobPut)
 	mux.HandleFunc("/crontab/jobs/delete", jobDelete)
+	mux.HandleFunc("/crontab/jobs/kill", jobKill)
 
 	if listener, err = net.Listen("tcp", ":" + webServerPort); err != nil {
 		WebServerInitErr = err
@@ -111,6 +114,41 @@ func jobDelete(w http.ResponseWriter, req *http.Request) {
 	job.Name = req.URL.Query().Get("jobName")
 	if err = job.JobDeleteHandler(context.TODO()); err != nil {
 		rsp = new(JsonResponse).NewResponse(1, err.Error())
+	}
+	w.Write(rsp)
+}
+
+func jobKill(w http.ResponseWriter, req *http.Request) {
+	var (
+		err error
+		job = new(Job)
+		count int64
+		kvs []*mvccpb.KeyValue
+		rsp = new(JsonResponse).NewResponse(0, "")
+	)
+	job.JobInit(req.PostForm.Get("name"), req.PostForm.Get("command"), req.PostForm.Get("cronExpress"))
+
+	if count, kvs, err = job.JobGetHandler(context.TODO()); err != nil {
+		rsp = new(JsonResponse).NewResponse(1, err.Error())
+	}
+
+	if count == 0 {
+		rsp = new(JsonResponse).NewResponse(1, fmt.Sprintf("job[%s] dose not exist", job.Name))
+	}
+
+	k, v := kvs[0].Key, kvs[0].Value
+	jobDest := new(Job)
+	if err = json.Unmarshal(v, jobDest); err != nil {
+		MasterLogger.Error.Println(fmt.Sprintf("josn.Unmarshal job[%s] error: %v", string(k), err))
+		rsp = new(JsonResponse).NewResponse(1, "json Unmarshal error")
+	} else {
+		if jobDest.Status != JOB_STATUS_RUNNING {
+			rsp = new(JsonResponse).NewResponse(1, fmt.Sprintf("job[%s] is not running", jobDest.Name))
+		} else {
+			if err1 := jobDest.JobKillHandler(context.TODO()); err1 != nil {
+				rsp = new(JsonResponse).NewResponse(1, err1.Error())
+			}
+		}
 	}
 	w.Write(rsp)
 }

@@ -53,18 +53,19 @@
 # ETCD结构：
 
 - ```
-  /cron/jobs/jobName -> {name: "", command: "", cronExpress: ""}
+  key: /cron/jobs/jobName
+  calue: "{name: "", command: "", cronExpress: "", status: false, hostName: ""}"
   ```
 
 - ```
-  /cron/job/control/cancel/jobName -> ""
+  key: /cron/job/cancel/jobName
+  calue: ""
   ```
 
 - ```
   /cron/job/lock/jobName
   ```
 
-  
 
 # MongoDB结构：
 
@@ -78,5 +79,3 @@
   	endTime: ,
   }
   ```
-
-  

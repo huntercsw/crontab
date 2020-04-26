@@ -11,14 +11,22 @@ const (
 	JOB_KILL_PATH = "/cron/job/control/cancel/"
 
 	JOB_LOCK_PATH = "/cron/job/lock/"
+
+	JOB_STATUS_RUNNING = 0
+
+	JOB_STATUS_SLEEPING = 1
+
+	JOB_STATUS_KILLING = 2
+
+	JOB_STATUS_CLOSED = 3
 )
 
 type Job struct {
 	Name        string `json:"name"`
 	Command     string `json:"command"`
 	CronExpress string `json:"cronExpress"`
-	Status      bool   `json:"status"`
-	HostName	string `json:"hostName"`
+	Status      int    `json:"status"`
+	HostName    string `json:"hostName"`
 }
 
 type JsonResponse struct {
@@ -27,7 +35,7 @@ type JsonResponse struct {
 }
 
 func (job *Job) JobInit(name, command, cronExp string) {
-	job.Name, job.Command, job.CronExpress, job.Status, job.HostName = name, command, cronExp, false, ""
+	job.Name, job.Command, job.CronExpress, job.Status, job.HostName = name, command, cronExp, JOB_STATUS_CLOSED, ""
 }
 
 func (jr *JsonResponse) NewResponse(code int, data interface{}) (rsp []byte) {
