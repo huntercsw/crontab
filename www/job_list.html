@@ -2274,10 +2274,22 @@
 			}
 			
 			function statusFormat(value, row, index) {
-				if (value) {
-					return '<span class="label label-success">RUNNING</span>'
-				} else {
-					return '<span class="label label-danger">DEAD</span>'
+				switch (value) {
+					case 0:
+						return '<span class="label label-success">RUNNING</span>'
+						break;
+					case 1:
+						return '<span class="label label-info">SLEEPING</span>'
+						break;
+					case 2:
+						return '<span class="label label-warning">KILLING</span>'
+						break;
+					case 3:
+						return '<span class="label label-inverse">CLOSED</span>'
+						break;
+					default:
+						return '<span class="label label-danger">ERROR</span>'
+						break;
 				}
 			}
 			
