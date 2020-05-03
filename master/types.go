@@ -12,20 +12,20 @@ const (
 
 	JOB_LOCK_PATH = "/cron/job/lock/"
 
-	JOB_STATUS_RUNNING = 0
+	JOB_STATUS_RUNNING = 1
 
-	JOB_STATUS_SLEEPING = 1
+	JOB_STATUS_SLEEPING = 2
 
-	JOB_STATUS_KILLING = 2
+	JOB_STATUS_KILLING = 3
 
-	JOB_STATUS_CLOSED = 3
+	JOB_STATUS_CLOSED = 4
 )
 
 type Job struct {
 	Name        string `json:"name"`
 	Command     string `json:"command"`
 	CronExpress string `json:"cronExpress"`
-	Status      int    `json:"status"`
+	Status      int    `json:"status"`			// 1: RUNNING;  2: SLEEPING;  3: KILLING;  4: CLOSED
 	HostName    string `json:"hostName"`
 }
 

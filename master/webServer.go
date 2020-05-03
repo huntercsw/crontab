@@ -20,13 +20,13 @@ func WebServerInit() {
 
 func webServerInitOnce() {
 	var (
-		mux *http.ServeMux
-		listener net.Listener
-		httpServer *http.Server
-		err error
+		mux           *http.ServeMux
+		listener      net.Listener
+		httpServer    *http.Server
+		err           error
 		webServerPort = MasterConf.WebPort
-		readTimeOut = time.Duration(MasterConf.ReadTimeOut)
-		writeTimeOut = time.Duration(MasterConf.WriteTimeOut)
+		readTimeOut   = time.Duration(MasterConf.ReadTimeOut)
+		writeTimeOut  = time.Duration(MasterConf.WriteTimeOut)
 	)
 
 	mux = http.NewServeMux()
@@ -37,15 +37,15 @@ func webServerInitOnce() {
 	mux.HandleFunc("/crontab/jobs/delete", jobDelete)
 	mux.HandleFunc("/crontab/jobs/kill", jobKill)
 
-	if listener, err = net.Listen("tcp", ":" + webServerPort); err != nil {
+	if listener, err = net.Listen("tcp", ":"+webServerPort); err != nil {
 		WebServerInitErr = err
 		return
 	}
 
 	httpServer = &http.Server{
-		ReadTimeout: readTimeOut*time.Millisecond,
-		WriteTimeout: writeTimeOut*time.Millisecond,
-		Handler: mux,
+		ReadTimeout:  readTimeOut * time.Millisecond,
+		WriteTimeout: writeTimeOut * time.Millisecond,
+		Handler:      mux,
 	}
 
 	go httpServer.Serve(listener)
@@ -53,11 +53,11 @@ func webServerInitOnce() {
 
 func jobList(w http.ResponseWriter, req *http.Request) {
 	var (
-		job Job
-		err error
-		jobs []Job
+		job          Job
+		err          error
+		jobs         []Job
 		jsonResponse = new(JsonResponse)
-		rsp []byte
+		rsp          []byte
 	)
 	if jobs, err = job.JobListHandler(context.TODO()); err != nil {
 		rsp = jsonResponse.NewResponse(1, fmt.Sprintf("get jobs list error"))
@@ -69,8 +69,8 @@ func jobList(w http.ResponseWriter, req *http.Request) {
 
 func jobPost(w http.ResponseWriter, req *http.Request) {
 	var (
-		err error
-		job = new(Job)
+		err          error
+		job          = new(Job)
 		jsonResponse JsonResponse
 	)
 	rsp := jsonResponse.NewResponse(0, "")
@@ -91,15 +91,17 @@ func jobGet(w http.ResponseWriter, req *http.Request) {
 
 func jobPut(w http.ResponseWriter, req *http.Request) {
 	var (
-		job = new(Job)
-		err error
-		rsp = new(JsonResponse).NewResponse(0, "")
+		job           = new(Job)
+		err           error
+		rsp           = new(JsonResponse).NewResponse(0, "")
+		originJobName string
 	)
+	originJobName = req.URL.Query().Get("jobName")
 	if err = req.ParseForm(); err != nil {
 		rsp = new(JsonResponse).NewResponse(1, fmt.Sprintf("get request form error: %v", err))
 	}
 	job.JobInit(req.PostForm.Get("name"), req.PostForm.Get("command"), req.PostForm.Get("cronExpress"))
-	if err = job.JobPutHandler(context.TODO()); err != nil {
+	if err = job.JobPutHandler(context.TODO(), originJobName); err != nil {
 		rsp = new(JsonResponse).NewResponse(1, err.Error())
 	}
 	w.Write(rsp)
@@ -120,11 +122,11 @@ func jobDelete(w http.ResponseWriter, req *http.Request) {
 
 func jobKill(w http.ResponseWriter, req *http.Request) {
 	var (
-		err error
-		job = new(Job)
+		err   error
+		job   = new(Job)
 		count int64
-		kvs []*mvccpb.KeyValue
-		rsp = new(JsonResponse).NewResponse(0, "")
+		kvs   []*mvccpb.KeyValue
+		rsp   = new(JsonResponse).NewResponse(0, "")
 	)
 	job.JobInit(req.PostForm.Get("name"), req.PostForm.Get("command"), req.PostForm.Get("cronExpress"))
 

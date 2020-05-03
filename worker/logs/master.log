@@ -1,0 +1,3 @@
+ERROR	2020/05/02 23:58:40.136016 D:/go_project/crontab/worker/jobHandler.go:104: jobDirWatcher jsonUnmarshal job[] to job object error: unexpected end of JSON input
+ERROR	2020/05/03 00:21:22.872960 D:/go_project/crontab/worker/jobHandler.go:94: jobDirWatcher jsonUnmarshal job[] to job object error: unexpected end of JSON input
+ERROR	2020/05/03 00:25:52.989410 D:/go_project/crontab/worker/jobHandler.go:94: jobDirWatcher jsonUnmarshal job[] to job object error: unexpected end of JSON input

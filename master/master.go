@@ -18,16 +18,20 @@ func init() {
 
 }
 
-func ProgramArgumentsInit () {
-	flag.StringVar(&ArgumentConfPath, "config", "./master.conf", "specify the configuration of master")
+func ProgramArgumentsInit() {
+	flag.StringVar(
+		&ArgumentConfPath,
+		"config",
+		"./master.conf",
+		"specify the configuration of master, default: ./master.conf")
 	flag.Parse()
 }
 
 func main() {
 	var (
-		err error
+		err    error
 		stopWQ = sync.WaitGroup{}
-		ctx context.Context
+		ctx    context.Context
 	)
 	stopWQ.Add(1)
 	ctx = context.Background()
@@ -40,7 +44,7 @@ func main() {
 		return
 	}
 
-	if err = MasterLogger.LogInit(MasterConf.LogPath); err !=nil {
+	if err = MasterLogger.LogInit(MasterConf.LogPath); err != nil {
 		fmt.Println("master log init error:", err)
 		return
 	}
@@ -74,12 +78,10 @@ func main() {
 			case <-StopChan:
 				return
 			default:
-				time.Sleep(500*time.Millisecond)
+				time.Sleep(500 * time.Millisecond)
 			}
 		}
 	}()
 	fmt.Println("Corntab Master Running")
 	stopWQ.Wait()
 }
-
-

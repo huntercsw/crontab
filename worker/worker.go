@@ -4,23 +4,31 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"sync"
 )
 
 var (
-	ConfPath string
+	ConfPath     string
 	WorkerLogger = new(WorkerLog)
-	Etcd = new(ETCD)
-	Mongo = new(MONGO)
+	Etcd         = new(ETCD)
+	Mongo        = new(MONGO)
 )
 
-func ProgramArgumentsInit () {
-	flag.StringVar(&ConfPath, "config", "./worker.conf", "specify the configuration of master")
+func ProgramArgumentsInit() {
+	flag.StringVar(
+		&ConfPath,
+		"config",
+		"./worker.conf",
+		"specify the configuration of master, default: ./worker.conf",
+		)
 	flag.Parse()
 }
 
 func main() {
 	var (
 		err error
+		ctx context.Context
+		wg sync.WaitGroup
 	)
 
 	ProgramArgumentsInit()
@@ -52,5 +60,12 @@ func main() {
 		Mongo.cli.Disconnect(context.TODO())
 	}()
 
+	ctx = context.Background()
+	wg.Add(1)
+	if err = JobHandlerInit(ctx, wg); err != nil {
+		fmt.Println("JobHandlerInit error", err)
+	}
+
 	fmt.Println("crontab worker started")
+	wg.Wait()
 }

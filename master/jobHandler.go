@@ -24,7 +24,7 @@ func (job *Job) JobGetHandler(ctx context.Context) (count int64, kvs []*mvccpb.K
 
 func (job *Job) JobPostHandler(ctx context.Context) (err error) {
 	var (
-		count int64
+		count  int64
 		putRsp *clientv3.PutResponse
 	)
 	key := JOB_PATH + job.Name
@@ -46,20 +46,41 @@ func (job *Job) JobPostHandler(ctx context.Context) (err error) {
 	return
 }
 
-func (job *Job) JobPutHandler(ctx context.Context) (err error) {
+func (job *Job) JobPutHandler(ctx context.Context, originJobName string) (err error) {
 	var (
-		count int64
-		putRsp *clientv3.PutResponse
+		count               int64
+		putRsp              *clientv3.PutResponse
+		value               []byte
 	)
 	key := JOB_PATH + job.Name
 	if count, _, err = job.JobGetHandler(ctx); err != nil {
 		return
 	}
-	if count == 0 {
-		err = errors.New(fmt.Sprintf("job[%s] dose not exist", key))
+
+	if value, err = json.Marshal(job); err != nil {
+		MasterLogger.Error.Println("JobPutHandler json.Marshal job to []byte error:", err)
 		return
 	}
-	value, _ := json.Marshal(job)
+
+	if count == 0 {
+		// since key changed, can not change name of key
+		// so create a new key, if succeed delete origin key, these operations are in transaction
+		if putRsp, err = Etcd.cli.Put(ctx, key, string(value)); err != nil {
+			MasterLogger.Error.Println("JobPutHandler put job to etcd error:", err)
+			return
+		}
+
+		if _, err  = Etcd.cli.Txn(ctx).
+			If(clientv3.Compare(clientv3.CreateRevision(key), ">", 0)).
+			Then(clientv3.OpDelete(originJobName)).
+			Commit(); err != nil {
+				MasterLogger.Error.Println("JobPutHandler put job to etcd transaction error:", err)
+				return
+		}
+
+		return
+	}
+
 	if putRsp, err = Etcd.cli.Put(ctx, key, string(value), clientv3.WithPrevKV()); err != nil {
 		msg := fmt.Sprintf("JobPuttHandler, update job[%s] error: %v", key, err)
 		MasterLogger.Error.Println(msg)
@@ -81,7 +102,7 @@ func (job *Job) JobDeleteHandler(ctx context.Context) (err error) {
 		err = errors.New(fmt.Sprintf("delete job[%s] error", key))
 		return
 	}
-	if len(delRsp.PrevKvs) == 0{
+	if len(delRsp.PrevKvs) == 0 {
 		err = errors.New(fmt.Sprintf("job[%s] dose not exist", key))
 		return
 	}
@@ -92,7 +113,7 @@ func (job *Job) JobDeleteHandler(ctx context.Context) (err error) {
 func (job *Job) JobListHandler(ctx context.Context) (jobs []Job, err error) {
 	var (
 		getRsp *clientv3.GetResponse
-		key = JOB_PATH + job.Name
+		key    = JOB_PATH + job.Name
 	)
 
 	if getRsp, err = Etcd.cli.Get(ctx, key, clientv3.WithPrefix()); err != nil {
@@ -117,8 +138,8 @@ func (job *Job) JobListHandler(ctx context.Context) (jobs []Job, err error) {
 func (job *Job) JobKillHandler(ctx context.Context) (err error) {
 	var (
 		transaction clientv3.Txn
-		txnRsp *clientv3.TxnResponse
-		key string
+		txnRsp      *clientv3.TxnResponse
+		key         string
 	)
 
 	if job.Status != JOB_STATUS_RUNNING {
