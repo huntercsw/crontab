@@ -1,7 +1,8 @@
 package main
 
 import (
-	"sync"
+	"fmt"
+	"github.com/gorhill/cronexpr"
 	"time"
 )
 
@@ -27,7 +28,37 @@ func (job *Job) JobInit() {
 	job.Name, job.CronExpress, job.Status, job.HostName, job.Command = "", "", 0, "", ""
 }
 
+func (job *Job) CronExpressionAnalysis() (cronExpr *cronexpr.Expression, err error) {
+	if cronExpr, err = cronexpr.Parse(job.CronExpress); err != nil {
+		WorkerLogger.Error.Println(fmt.Sprintf("cronExpression of job[%s] analisys error: %v", job.Name, err))
+	}
+	return
+}
+
+type JobPlan struct {
+	Job         *Job
+	CronExpress *cronexpr.Expression
+	NextTime    time.Time
+}
+
+func NewJobPlan(job *Job) (jobPlan *JobPlan, err error) {
+	var (
+		cronExpr *cronexpr.Expression
+	)
+	jobPlan = new(JobPlan)
+
+	if cronExpr, err = cronexpr.Parse(job.CronExpress); err != nil {
+		WorkerLogger.Error.Println(fmt.Sprintf("cronExpression of job[%s] analysis error: %v", job.Name, err))
+		return
+	}
+
+	jobPlan.Job, jobPlan.CronExpress, jobPlan.NextTime = job, cronExpr, cronExpr.Next(time.Now())
+
+	return
+}
+
 type JobScheduler struct {
-	JobMap           sync.Map
+	JobMap           map[string]*JobPlan
 	ScheduleDuration time.Duration
+	NextTime         time.Time
 }

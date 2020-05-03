@@ -35,6 +35,13 @@ func (job *Job) JobPostHandler(ctx context.Context) (err error) {
 		err = errors.New(fmt.Sprintf("job[%s] has exist", key))
 		return
 	}
+	if _, err = job.CronExpressionAnalysis(); err != nil {
+		msg := fmt.Sprintf("JobPostHandler CronExpressionAnalysis error: %v", err)
+		MasterLogger.Error.Println(msg)
+		err = errors.New(msg)
+		return
+	}
+
 	value, _ := json.Marshal(job)
 	if putRsp, err = Etcd.cli.KV.Put(ctx, key, string(value)); err != nil {
 		msg := fmt.Sprintf("JobPostHandler, put job to etcd error: %v", err)
@@ -62,6 +69,13 @@ func (job *Job) JobPutHandler(ctx context.Context, originJobName string) (err er
 		return
 	}
 
+	if _, err = job.CronExpressionAnalysis(); err != nil {
+		msg := fmt.Sprintf("JobPutHandler CronExpressionAnalysis error: %v", err)
+		MasterLogger.Error.Println(msg)
+		err = errors.New(msg)
+		return
+	}
+
 	if count == 0 {
 		// since key changed, can not change name of key
 		// so create a new key, if succeed delete origin key, these operations are in transaction
@@ -71,7 +85,7 @@ func (job *Job) JobPutHandler(ctx context.Context, originJobName string) (err er
 		}
 
 		if _, err  = Etcd.cli.Txn(ctx).
-			If(clientv3.Compare(clientv3.CreateRevision(key), ">", 0)).
+			If(clientv3.Compare(clientv3.CreateRevision(key), "!=", 0)).
 			Then(clientv3.OpDelete(originJobName)).
 			Commit(); err != nil {
 				MasterLogger.Error.Println("JobPutHandler put job to etcd transaction error:", err)
@@ -163,3 +177,4 @@ func (job *Job) JobKillHandler(ctx context.Context) (err error) {
 	}
 	return
 }
+

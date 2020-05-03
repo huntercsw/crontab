@@ -96,14 +96,25 @@ func jobPut(w http.ResponseWriter, req *http.Request) {
 		rsp           = new(JsonResponse).NewResponse(0, "")
 		originJobName string
 	)
-	originJobName = req.URL.Query().Get("jobName")
+
+	if req.URL.Query().Get("jobName") == "" {
+		rsp = new(JsonResponse).NewResponse(1, "job name is required")
+		goto RESPONSE
+	}
+
+	originJobName = JOB_PATH + req.URL.Query().Get("jobName")
+
 	if err = req.ParseForm(); err != nil {
 		rsp = new(JsonResponse).NewResponse(1, fmt.Sprintf("get request form error: %v", err))
+		goto RESPONSE
 	}
+
 	job.JobInit(req.PostForm.Get("name"), req.PostForm.Get("command"), req.PostForm.Get("cronExpress"))
 	if err = job.JobPutHandler(context.TODO(), originJobName); err != nil {
 		rsp = new(JsonResponse).NewResponse(1, err.Error())
 	}
+
+RESPONSE:
 	w.Write(rsp)
 }
 

@@ -8,10 +8,12 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/mvcc/mvccpb"
 	"sync"
+	"time"
 )
 
 var (
 	getAllJobsResponse *clientv3.GetResponse
+	jobStatusChan      = make(chan struct{}, 100)
 )
 
 func (jobScheduler *JobScheduler) jobMapInit(ctx context.Context) (err error) {
@@ -24,8 +26,9 @@ func (jobScheduler *JobScheduler) jobMapInit(ctx context.Context) (err error) {
 	}()
 
 	var (
-		row *mvccpb.KeyValue
-		job = new(Job)
+		row     *mvccpb.KeyValue
+		job     *Job
+		jobPlan *JobPlan
 	)
 
 	if getAllJobsResponse, err = Etcd.cli.Get(ctx, JOB_PATH, clientv3.WithPrefix()); err != nil {
@@ -33,53 +36,28 @@ func (jobScheduler *JobScheduler) jobMapInit(ctx context.Context) (err error) {
 	}
 
 	for _, row = range getAllJobsResponse.Kvs {
+		job = new(Job)
 		if err = json.Unmarshal(row.Value, job); err != nil {
 			msg := fmt.Sprintf("%s json unmarshal to job obj error: %v", string(row.Value), err)
 			WorkerLogger.Error.Println(msg)
 			err = errors.New(msg)
 			break
 		}
-		jobScheduler.JobMap.Store(string(row.Key)[len(JOB_PATH):], *job)
+		if jobPlan, err = NewJobPlan(job); err != nil {
+			break
+		}
+		jobScheduler.JobMap[string(row.Key)[len(JOB_PATH):]] = jobPlan
 	}
 	return
 }
 
-func (jobScheduler *JobScheduler) jobMapAppend(job *Job) (err error) {
-	_, ok := jobScheduler.JobMap.LoadOrStore(job.Name, job) //若key已存在，则返回true和key对应的value，不会修改原来的value
-	if ok {
-		err = errors.New(fmt.Sprintf("job[%s] has exist", job.Name))
-	}
-	return
-}
-
-func (jobScheduler *JobScheduler) jobMapUpdate(job *Job) (err error) {
-	_, exist := jobScheduler.JobMap.Load(job.Name)
-	if !exist {
-		err = errors.New(fmt.Sprintf("job[%s] dose not exist", job.Name))
-	} else {
-		jobScheduler.JobMap.Store(job.Name, job)
-	}
-	return
-}
-
-func (jobScheduler *JobScheduler) jobMapDelete(job *Job) (err error) {
-	_, exist := jobScheduler.JobMap.Load(job.Name)
-	if !exist {
-		err = errors.New(fmt.Sprintf("job[%s] dose not exist", job.Name))
-	} else {
-		jobScheduler.JobMap.Delete(job.Name)
-	}
-	return
-}
-
-func (jobScheduler *JobScheduler) jobDirWatcher(ctx context.Context, wg sync.WaitGroup) {
-	defer wg.Done()
+func (jobScheduler *JobScheduler) jobDirWatcher(ctx context.Context) {
 	var (
 		jobEventChan  clientv3.WatchChan
 		watchResponse clientv3.WatchResponse
 		event         *clientv3.Event
 		err           error
-		job           = new(Job)
+		job           *Job
 	)
 	jobEventChan = Etcd.cli.Watch(
 		ctx,
@@ -88,6 +66,7 @@ func (jobScheduler *JobScheduler) jobDirWatcher(ctx context.Context, wg sync.Wai
 		clientv3.WithPrefix(),
 	)
 	for watchResponse = range jobEventChan {
+		job = new(Job)
 		for _, event = range watchResponse.Events {
 			switch event.Type {
 			case mvccpb.PUT:
@@ -99,17 +78,68 @@ func (jobScheduler *JobScheduler) jobDirWatcher(ctx context.Context, wg sync.Wai
 					)
 					job.JobInit()
 				}
-				jobScheduler.JobMap.Store(job.Name, *job)
+				if jobPlan, err1 := NewJobPlan(job); err1 == nil {
+					jobScheduler.JobMap[job.Name] = jobPlan
+				}
 			case mvccpb.DELETE:
 				fmt.Println(string(event.Kv.Key)[len(JOB_PATH):])
-				jobScheduler.JobMap.Delete(string(event.Kv.Key)[len(JOB_PATH):])
+				delete(jobScheduler.JobMap, string(event.Kv.Key)[len(JOB_PATH):])
 			}
 		}
-		jobScheduler.JobMap.Range(func(k, v interface{}) bool {
-			fmt.Println(v)
-			return true
-		})
-		job.JobInit()
+		jobStatusChan <- struct{}{}
+	}
+}
+
+func (jobScheduler *JobScheduler) jobSchedule() {
+	if len(jobScheduler.JobMap) == 0 {
+		time.Sleep(time.Second)
+		return
+	}
+
+	var (
+		jobPlan     *JobPlan
+		current     = time.Now()
+		jobMapIndex = 0
+	)
+
+	for _, jobPlan = range jobScheduler.JobMap {
+		if jobPlan.NextTime.Before(current) || jobPlan.NextTime.Equal(current) {
+			go jobPlan.Job.jobExec()
+			jobPlan.NextTime = jobPlan.CronExpress.Next(current)
+		}
+
+		if jobMapIndex == 0 {
+			jobScheduler.NextTime = jobPlan.NextTime
+			jobMapIndex += 1
+			continue
+		}
+
+		if jobPlan.NextTime.Before(jobScheduler.NextTime) {
+			jobScheduler.NextTime = jobPlan.NextTime
+		}
+	}
+
+	jobScheduler.ScheduleDuration = jobScheduler.NextTime.Sub(current)
+}
+
+func (job *Job) jobExec() {
+	fmt.Println(time.Now().String(), *job)
+}
+
+func (jobScheduler *JobScheduler) workerRun(ctx context.Context, wg sync.WaitGroup) {
+	defer wg.Done()
+
+	var (
+		timer = time.NewTimer(jobScheduler.ScheduleDuration)
+	)
+
+	for {
+		select {
+		case <-jobStatusChan:
+		case <-timer.C:
+		}
+		jobScheduler.jobSchedule()
+		timer.Reset(jobScheduler.ScheduleDuration)
 	}
 }
 
@@ -117,12 +147,12 @@ func (jobScheduler *JobScheduler) jobSchedulerInit(ctx context.Context, wg sync.
 	if err = jobScheduler.jobMapInit(ctx); err != nil {
 		return
 	}
-	jobScheduler.JobMap.Range(func(k, v interface{}) bool {
-		fmt.Println(k, v)
-		return true
-	})
 
-	go jobScheduler.jobDirWatcher(ctx, wg)
+	jobScheduler.jobSchedule()
+
+	go jobScheduler.jobDirWatcher(ctx)
+
+	go jobScheduler.workerRun(ctx, wg)
 
 	return
 }
@@ -131,8 +161,10 @@ func JobHandlerInit(ctx context.Context, wg sync.WaitGroup) (err error) {
 	var (
 		jobScheduler = new(JobScheduler)
 	)
+	jobScheduler.JobMap = make(map[string]*JobPlan, 1)
 
 	err = jobScheduler.jobSchedulerInit(ctx, wg)
 
 	return
 }
+

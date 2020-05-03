@@ -43,27 +43,25 @@ func main() {
 		fmt.Println("crontab worker logger initialization error:", err)
 		return
 	}
+	defer WorkerLogger.LogFile.Close()
 
 	if err = Etcd.EtcdInit(); err != nil {
 		fmt.Println("crontab worker Etcd initialization error:", err)
 		return
 	}
+	defer Etcd.cli.Close()
 
 	if err = Mongo.MongoInit(); err != nil {
 		fmt.Println("crontab worker MongoDB initialization error:", err)
 		return
 	}
-
-	defer func() {
-		WorkerLogger.LogFile.Close()
-		Etcd.cli.Close()
-		Mongo.cli.Disconnect(context.TODO())
-	}()
+	defer Mongo.cli.Disconnect(context.TODO())
 
 	ctx = context.Background()
 	wg.Add(1)
 	if err = JobHandlerInit(ctx, wg); err != nil {
 		fmt.Println("JobHandlerInit error", err)
+		return
 	}
 
 	fmt.Println("crontab worker started")

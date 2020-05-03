@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gorhill/cronexpr"
 )
 
 const (
@@ -36,6 +37,13 @@ type JsonResponse struct {
 
 func (job *Job) JobInit(name, command, cronExp string) {
 	job.Name, job.Command, job.CronExpress, job.Status, job.HostName = name, command, cronExp, JOB_STATUS_CLOSED, ""
+}
+
+func (job *Job) CronExpressionAnalysis() (cronExpr *cronexpr.Expression, err error) {
+	if cronExpr, err = cronexpr.Parse(job.CronExpress); err != nil {
+		MasterLogger.Error.Println(fmt.Sprintf("cronExpression of job[%s] analisys error: %v", job.Name, err))
+	}
+	return
 }
 
 func (jr *JsonResponse) NewResponse(code int, data interface{}) (rsp []byte) {
