@@ -104,7 +104,7 @@ func (jobScheduler *JobScheduler) jobSchedule() {
 
 	for _, jobPlan = range jobScheduler.JobMap {
 		if jobPlan.NextTime.Before(current) || jobPlan.NextTime.Equal(current) {
-			go jobPlan.Job.jobExec()
+			go jobPlan.Job.JobExec()
 			jobPlan.NextTime = jobPlan.CronExpress.Next(current)
 		}
 
@@ -120,10 +120,6 @@ func (jobScheduler *JobScheduler) jobSchedule() {
 	}
 
 	jobScheduler.ScheduleDuration = jobScheduler.NextTime.Sub(current)
-}
-
-func (job *Job) jobExec() {
-	fmt.Println(time.Now().String(), *job)
 }
 
 func (jobScheduler *JobScheduler) workerRun(ctx context.Context, wg sync.WaitGroup) {

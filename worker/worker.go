@@ -65,5 +65,12 @@ func main() {
 	}
 
 	fmt.Println("crontab worker started")
+
+	sysInfo, sysInstantaneousInfo := new(SysInfo), new(SysInstantaneousInfo)
+	sysInfo.SysInfoInit()
+	fmt.Println(sysInfo)
+	sysInstantaneousInfo.SysInstantaneousInit()
+	fmt.Println(sysInstantaneousInfo)
+
 	wg.Wait()
 }
