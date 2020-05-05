@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/gorhill/cronexpr"
 	"time"
@@ -61,4 +62,16 @@ type JobScheduler struct {
 	JobMap           map[string]*JobPlan
 	ScheduleDuration time.Duration
 	NextTime         time.Time
+}
+
+type JobExecuted struct {
+	Job           *Job
+	CronStartTime time.Time
+	StartTime     time.Time
+	Ctx           context.Context
+	Cancel        context.CancelFunc
+	Pid           int
+	ExitCode      int
+	Err           error
+	OutPut        []byte
 }

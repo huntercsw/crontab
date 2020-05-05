@@ -13,21 +13,20 @@ import (
 type SysInfo struct {
 	HoseName      string
 	IPAddress     string
-	IPMaskAddr    string
 	CpuLogicCores int
 	MemTotal      uint64
 	SwapTotal     uint64
 	DiscTotal     uint64
 	DiscFree      uint64
-	DiscPercent   float64
+	DiscPercent   string
 }
 
 type SysInstantaneousInfo struct {
 	CpuIdle         float64
-	MemAvailable     uint64
-	MemUsedPercent  float64
+	MemAvailable    uint64
+	MemUsedPercent  string
 	SwapFree        uint64
-	SwapUsedPercent float64
+	SwapUsedPercent string
 }
 
 func (sysInfo *SysInfo) SysInfoInit() (err error) {
@@ -50,19 +49,20 @@ func (sysInfo *SysInfo) SysInfoInit() (err error) {
 	if memInfo, err = mem.VirtualMemory(); err != nil {
 		goto RESPONSE
 	} else {
-		sysInfo.MemTotal = memInfo.Total
+		sysInfo.MemTotal = memInfo.Total /1024/1024/1024
 	}
 
 	if swapInfo, err = mem.SwapMemory(); err != nil {
 		goto RESPONSE
 	} else {
-		sysInfo.SwapTotal = swapInfo.Total
+		sysInfo.SwapTotal = swapInfo.Total /1024/1024/1024
 	}
 
 	if discInfo, err = disk.Usage("/"); err != nil {
 		goto RESPONSE
 	} else {
-		sysInfo.DiscTotal, sysInfo.DiscFree, sysInfo.DiscPercent = discInfo.Total, discInfo.Free, discInfo.UsedPercent
+		sysInfo.DiscTotal, sysInfo.DiscFree, sysInfo.DiscPercent =
+			discInfo.Total/1024/1024/1024, discInfo.Free/1024/1024/1024, fmt.Sprintf("%.2f", discInfo.UsedPercent*100)
 	}
 
 RESPONSE:
@@ -90,8 +90,11 @@ func (sysInfo *SysInfo) GetLocalIP() (err error) {
 		if !ipAddr.IP.IsGlobalUnicast() {
 			continue
 		}
-		sysInfo.IPAddress = ipAddr.IP.String()
-		sysInfo.IPMaskAddr = ipAddr.Mask.String()
+
+		if ipAddr.IP.To4() != nil {		// IPV4
+			sysInfo.IPAddress = ipAddr.IP.String()	// 192.168.1.1
+			return nil
+		}
 	}
 	return
 }
@@ -113,16 +116,16 @@ func (sysInstantaneousInfo *SysInstantaneousInfo) SysInstantaneousInit() (err er
 		goto RESPONSE
 	} else {
 		sysInstantaneousInfo.MemAvailable, sysInstantaneousInfo.MemUsedPercent =
-			memInfo.Available, memInfo.UsedPercent
+			memInfo.Available/1024/1024, fmt.Sprintf("%.2f", memInfo.UsedPercent*100)
 	}
 
 	if swapInfo, err = mem.SwapMemory(); err != nil {
 		goto RESPONSE
 	} else {
-		sysInstantaneousInfo.SwapFree, sysInstantaneousInfo.SwapUsedPercent = swapInfo.Free, swapInfo.UsedPercent
+		sysInstantaneousInfo.SwapFree, sysInstantaneousInfo.SwapUsedPercent =
+			swapInfo.Free/1024/1024/1024, fmt.Sprintf("%.2f", swapInfo.UsedPercent*100)
 	}
 
-	RESPONSE:
+RESPONSE:
 	return
 }
-
