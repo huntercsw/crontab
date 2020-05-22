@@ -9,6 +9,7 @@ import (
 	"github.com/coreos/etcd/mvcc/mvccpb"
 	"sync"
 	"time"
+	"worker"
 )
 
 var (
@@ -20,7 +21,7 @@ func (jobScheduler *JobScheduler) jobMapInit(ctx context.Context) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			msg := fmt.Sprintf("get all jobs function panic: %v", r)
-			WorkerLogger.Error.Println(msg)
+			worker.WorkerLogger.Error.Println(msg)
 			err = errors.New(msg)
 		}
 	}()
@@ -31,7 +32,7 @@ func (jobScheduler *JobScheduler) jobMapInit(ctx context.Context) (err error) {
 		jobPlan *JobPlan
 	)
 
-	if getAllJobsResponse, err = Etcd.cli.Get(ctx, JOB_PATH, clientv3.WithPrefix()); err != nil {
+	if getAllJobsResponse, err = worker.Etcd.cli.Get(ctx, JOB_PATH, clientv3.WithPrefix()); err != nil {
 		return
 	}
 
@@ -39,7 +40,7 @@ func (jobScheduler *JobScheduler) jobMapInit(ctx context.Context) (err error) {
 		job = new(Job)
 		if err = json.Unmarshal(row.Value, job); err != nil {
 			msg := fmt.Sprintf("%s json unmarshal to job obj error: %v", string(row.Value), err)
-			WorkerLogger.Error.Println(msg)
+			worker.WorkerLogger.Error.Println(msg)
 			err = errors.New(msg)
 			break
 		}
@@ -59,7 +60,7 @@ func (jobScheduler *JobScheduler) jobDirWatcher(ctx context.Context) {
 		err           error
 		job           *Job
 	)
-	jobEventChan = Etcd.cli.Watch(
+	jobEventChan = worker.Etcd.cli.Watch(
 		ctx,
 		JOB_PATH,
 		clientv3.WithRev(getAllJobsResponse.Header.Revision+1),
@@ -71,7 +72,7 @@ func (jobScheduler *JobScheduler) jobDirWatcher(ctx context.Context) {
 			switch event.Type {
 			case mvccpb.PUT:
 				if err = json.Unmarshal(event.Kv.Value, job); err != nil {
-					WorkerLogger.Error.Printf(
+					worker.WorkerLogger.Error.Printf(
 						"jobDirWatcher jsonUnmarshal job[%s] to job object error: %v",
 						string(event.Kv.Value),
 						err,
@@ -98,13 +99,16 @@ func (jobScheduler *JobScheduler) jobSchedule() {
 
 	var (
 		jobPlan     *JobPlan
+		jobExec     *JobExecuted
 		current     = time.Now()
 		jobMapIndex = 0
 	)
 
 	for _, jobPlan = range jobScheduler.JobMap {
 		if jobPlan.NextTime.Before(current) || jobPlan.NextTime.Equal(current) {
-			go jobPlan.Job.JobExec()
+			jobExec = new(JobExecuted)
+			jobExec.NewJobExec(jobPlan)
+			go jobExec.JobExec()
 			jobPlan.NextTime = jobPlan.CronExpress.Next(current)
 		}
 
@@ -163,4 +167,6 @@ func JobHandlerInit(ctx context.Context, wg sync.WaitGroup) (err error) {
 
 	return
 }
+
+
 

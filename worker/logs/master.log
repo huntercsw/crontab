@@ -3,3 +3,4 @@ ERROR	2020/05/03 00:21:22.872960 D:/go_project/crontab/worker/jobHandler.go:94: 
 ERROR	2020/05/03 00:25:52.989410 D:/go_project/crontab/worker/jobHandler.go:94: jobDirWatcher jsonUnmarshal job[] to job object error: unexpected end of JSON input
 ERROR	2020/05/03 17:00:54.154121 D:/go_project/crontab/worker/jobHandler.go:23: get all jobs function panic: assignment to entry in nil map
 ERROR	2020/05/03 17:05:42.831633 D:/go_project/crontab/worker/jobHandler.go:23: get all jobs function panic: assignment to entry in nil map
+ERROR	2020/05/22 14:55:27.520786 D:/go_project/crontab/worker/jobScheduler.go:59: get all jobs function panic: runtime error: invalid memory address or nil pointer dereference

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/mem"
 	"net"
@@ -19,14 +18,6 @@ type SysInfo struct {
 	DiscTotal     uint64
 	DiscFree      uint64
 	DiscPercent   string
-}
-
-type SysInstantaneousInfo struct {
-	CpuIdle         float64
-	MemAvailable    uint64
-	MemUsedPercent  string
-	SwapFree        uint64
-	SwapUsedPercent string
 }
 
 func (sysInfo *SysInfo) SysInfoInit() (err error) {
@@ -49,13 +40,13 @@ func (sysInfo *SysInfo) SysInfoInit() (err error) {
 	if memInfo, err = mem.VirtualMemory(); err != nil {
 		goto RESPONSE
 	} else {
-		sysInfo.MemTotal = memInfo.Total /1024/1024/1024
+		sysInfo.MemTotal = memInfo.Total / 1024 / 1024 / 1024
 	}
 
 	if swapInfo, err = mem.SwapMemory(); err != nil {
 		goto RESPONSE
 	} else {
-		sysInfo.SwapTotal = swapInfo.Total /1024/1024/1024
+		sysInfo.SwapTotal = swapInfo.Total / 1024 / 1024 / 1024
 	}
 
 	if discInfo, err = disk.Usage("/"); err != nil {
@@ -91,41 +82,11 @@ func (sysInfo *SysInfo) GetLocalIP() (err error) {
 			continue
 		}
 
-		if ipAddr.IP.To4() != nil {		// IPV4
-			sysInfo.IPAddress = ipAddr.IP.String()	// 192.168.1.1
+		if ipAddr.IP.To4() != nil { // IPV4
+			sysInfo.IPAddress = ipAddr.IP.String() // 192.168.1.1
 			return nil
 		}
 	}
 	return
 }
 
-func (sysInstantaneousInfo *SysInstantaneousInfo) SysInstantaneousInit() (err error) {
-	var (
-		cpuInfo  []cpu.TimesStat
-		memInfo  *mem.VirtualMemoryStat
-		swapInfo *mem.SwapMemoryStat
-	)
-
-	if cpuInfo, err = cpu.Times(false); err != nil {
-		goto RESPONSE
-	} else {
-		fmt.Println(cpuInfo)
-	}
-
-	if memInfo, err = mem.VirtualMemory(); err != nil {
-		goto RESPONSE
-	} else {
-		sysInstantaneousInfo.MemAvailable, sysInstantaneousInfo.MemUsedPercent =
-			memInfo.Available/1024/1024, fmt.Sprintf("%.2f", memInfo.UsedPercent*100)
-	}
-
-	if swapInfo, err = mem.SwapMemory(); err != nil {
-		goto RESPONSE
-	} else {
-		sysInstantaneousInfo.SwapFree, sysInstantaneousInfo.SwapUsedPercent =
-			swapInfo.Free/1024/1024/1024, fmt.Sprintf("%.2f", swapInfo.UsedPercent*100)
-	}
-
-RESPONSE:
-	return
-}

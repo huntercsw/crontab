@@ -58,19 +58,20 @@ func main() {
 	defer Mongo.cli.Disconnect(context.TODO())
 
 	ctx = context.Background()
+	wg = sync.WaitGroup{}
 	wg.Add(1)
-	if err = JobHandlerInit(ctx, wg); err != nil {
+	if err = JobSchedulerInit(ctx, &wg); err != nil {
 		fmt.Println("JobHandlerInit error", err)
 		return
 	}
 
 	fmt.Println("crontab worker started")
 
-	sysInfo, sysInstantaneousInfo := new(SysInfo), new(SysInstantaneousInfo)
-	sysInfo.SysInfoInit()
-	fmt.Println(sysInfo)
-	sysInstantaneousInfo.SysInstantaneousInit()
-	fmt.Println(sysInstantaneousInfo)
+	//sysInfo, sysInstantaneousInfo := new(SysInfo), new(SysInstantaneousInfo)
+	//sysInfo.SysInfoInit()
+	//fmt.Println(sysInfo)
+	//sysInstantaneousInfo.SysInstantaneousInit()
+	//fmt.Println(sysInstantaneousInfo)
 
 	wg.Wait()
 }

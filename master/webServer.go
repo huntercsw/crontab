@@ -53,7 +53,7 @@ func webServerInitOnce() {
 
 func jobList(w http.ResponseWriter, req *http.Request) {
 	var (
-		job          Job
+		job          = new(Job)
 		err          error
 		jobs         []Job
 		jsonResponse = new(JsonResponse)
@@ -77,7 +77,12 @@ func jobPost(w http.ResponseWriter, req *http.Request) {
 	if err = req.ParseForm(); err != nil {
 		rsp = jsonResponse.NewResponse(1, fmt.Sprintf("get request form error: %v", err))
 	}
-	job.JobInit(req.PostForm.Get("name"), req.PostForm.Get("command"), req.PostForm.Get("cronExpress"))
+	job.JobInit(
+		req.PostForm.Get("name"),
+		req.PostForm.Get("command"),
+		req.PostForm.Get("cronExpress"),
+		req.PostForm.Get("hostName"),
+		)
 	if err = job.JobPostHandler(context.TODO()); err != nil {
 		msg := fmt.Sprintf("add job to etcd error: %v", err)
 		MasterLogger.Error.Println(msg)
@@ -109,7 +114,12 @@ func jobPut(w http.ResponseWriter, req *http.Request) {
 		goto RESPONSE
 	}
 
-	job.JobInit(req.PostForm.Get("name"), req.PostForm.Get("command"), req.PostForm.Get("cronExpress"))
+	job.JobInit(
+		req.PostForm.Get("name"),
+		req.PostForm.Get("command"),
+		req.PostForm.Get("cronExpress"),
+		req.PostForm.Get("hostName"),
+	)
 	if err = job.JobPutHandler(context.TODO(), originJobName); err != nil {
 		rsp = new(JsonResponse).NewResponse(1, err.Error())
 	}
@@ -139,7 +149,12 @@ func jobKill(w http.ResponseWriter, req *http.Request) {
 		kvs   []*mvccpb.KeyValue
 		rsp   = new(JsonResponse).NewResponse(0, "")
 	)
-	job.JobInit(req.PostForm.Get("name"), req.PostForm.Get("command"), req.PostForm.Get("cronExpress"))
+	job.JobInit(
+		req.PostForm.Get("name"),
+		req.PostForm.Get("command"),
+		req.PostForm.Get("cronExpress"),
+		req.PostForm.Get("hostName"),
+	)
 
 	if count, kvs, err = job.JobGetHandler(context.TODO()); err != nil {
 		rsp = new(JsonResponse).NewResponse(1, err.Error())

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gorhill/cronexpr"
 	"time"
+	"worker"
 )
 
 const (
@@ -31,7 +32,7 @@ func (job *Job) JobInit() {
 
 func (job *Job) CronExpressionAnalysis() (cronExpr *cronexpr.Expression, err error) {
 	if cronExpr, err = cronexpr.Parse(job.CronExpress); err != nil {
-		WorkerLogger.Error.Println(fmt.Sprintf("cronExpression of job[%s] analisys error: %v", job.Name, err))
+		worker.WorkerLogger.Error.Println(fmt.Sprintf("cronExpression of job[%s] analisys error: %v", job.Name, err))
 	}
 	return
 }
@@ -49,7 +50,7 @@ func NewJobPlan(job *Job) (jobPlan *JobPlan, err error) {
 	jobPlan = new(JobPlan)
 
 	if cronExpr, err = cronexpr.Parse(job.CronExpress); err != nil {
-		WorkerLogger.Error.Println(fmt.Sprintf("cronExpression of job[%s] analysis error: %v", job.Name, err))
+		worker.WorkerLogger.Error.Println(fmt.Sprintf("cronExpression of job[%s] analysis error: %v", job.Name, err))
 		return
 	}
 
@@ -69,9 +70,22 @@ type JobExecuted struct {
 	CronStartTime time.Time
 	StartTime     time.Time
 	Ctx           context.Context
-	Cancel        context.CancelFunc
 	Pid           int
 	ExitCode      int
 	Err           error
 	OutPut        []byte
 }
+
+func (jobExec *JobExecuted) NewJobExec(jobPlan *JobPlan) {
+	jobExec = &JobExecuted{
+		Job:           jobPlan.Job,
+		CronStartTime: time.Time{},
+		StartTime:     time.Time{},
+		Ctx:           nil,
+		Pid:           0,
+		ExitCode:      0,
+		Err:           nil,
+		OutPut:        nil,
+	}
+}
+
